@@ -22,25 +22,85 @@
         }
 
     </style>
+    <style>
+        #tooltip {
+            position: absolute;
+            z-index: 9;
+            background-color: #f1f1f1;
+            border: 1px solid #d3d3d3;
+            text-align: center;
+        }
+
+        #tooltip_header {
+            padding: 10px;
+            cursor: move;
+            z-index: 10;
+            background-color: #2196F3;
+            color: #fff;
+        }
+    </style>
+    
 </head>
 <body>
-
-<!-- load the d3.js library -->
-<script src="https://cdn.observableusercontent.com/npm/d3@7.8.5/dist/d3.min.js"></script>
-<script src="./snippet.js"></script>
+<div id="tooltip">
+    <div id="tooltip_header">Tooltip - drag to move</div>
+    <p id="tooltip_content"></p>
+</div>
 
 <script>
-    var rawGraph = new URLSearchParams(window.location.search).get('graph');
-    var graph = JSON.parse(atob(rawGraph))
+    dragElement(document.getElementById("tooltip"));
 
-    function setColor(d) {
-        // console.log(d)
-        var name = d.data.name;
-        d.color = "yellow"; //color.domain().indexOf(name) >= 0 ? color(name) : d.parent ? d.parent.color : null;
-        if (d.children) d.children.forEach(setColor);
+    function dragElement(elmnt) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (document.getElementById(elmnt.id + "_header")) {
+            // if present, the header is where you move the DIV from:
+            document.getElementById(elmnt.id + "_header").onmousedown = dragMouseDown;
+        } else {
+            // otherwise, move the DIV from anywhere inside the DIV:
+            elmnt.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
+</script>
+<script src="https://cdn.observableusercontent.com/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.js"></script>
 
-    const width = window.innerWidth;
+<script>
+
+    let rawGraph = new URLSearchParams(window.location.search).get('graph');
+    let text = LZString.decompressFromEncodedURIComponent(rawGraph);
+    let graph = JSON.parse(text)
+
+    const width = window.screen.width;
     const marginTop = 10;
     const marginRight = 10;
     const marginBottom = 10;
@@ -50,7 +110,6 @@
     // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
     // “bottom”, in the data domain. The width of a column is based on the tree’s height.
     const root = d3.hierarchy(graph);
-    // setColor(root)
     const dx = 25;
     const dy = (width - marginRight - marginLeft) / (1 + root.height);
 
@@ -63,7 +122,7 @@
         .attr("width", width)
         .attr("height", dx)
         .attr("viewBox", [-marginLeft, -marginTop, width, dx])
-        .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;");
+        .attr("style", "max-width: " + width + "; height: auto; font: 10px sans-serif; user-select: none;");
 
     const gLink = svg.append("g")
         .attr("fill", "none")
@@ -71,13 +130,13 @@
         .attr("stroke-opacity", 0.4)
         .attr("stroke-width", 1.5)
 
-    var path = svg.append("svg:g")
+    let path = svg.append("svg:g")
         .selectAll("line")
         .data(root.links())
         // .enter().append("svg:path")
         .attr("class", "link")
         // .style("stroke-width", function (d) { return Math.sqrt(d.value); })
-        .style("stroke", function(d){
+        .style("stroke", function (d) {
             return d?.target.color;
         });
 
@@ -112,15 +171,39 @@
         const node = gNode.selectAll("g")
             .data(nodes, d => d.id);
 
+        let tooltip = d3.select("tooltip_content")
+            .append("div")
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("visibility", "hidden")
+            .style("padding", "10px")
+            .style("background", "black")
+            .style("color", "white");
+
         // Enter any new nodes at the parent's previous position.
         const nodeEnter = node.enter().append("g")
             .attr("transform", d => `translate(${source.y0},${source.x0})`)
             .attr("fill-opacity", 0)
             .attr("stroke-opacity", 0)
+            .on("dblclick", (event, d) => {
+                alert(1)
+            })
             .on("click", (event, d) => {
                 d.children = d.children ? null : d._children;
                 update(event, d);
-            });
+            })
+            .on("mouseover", function (event, d) {
+                console.log(d.data);
+                const {boardId, children, collapsed, id, name, title, type, ...additional} = d.data;
+                tooltip.html(JSON.stringify(additional, null, '\t').replace(/\n/g, '<br/>').replace(/\s/g, '&nbsp&nbsp'));
+                let bodyRect = document.body.getBoundingClientRect();
+                let elemRect = event.target.getBoundingClientRect();
+                tooltip.style("top", (elemRect.top - bodyRect.top) + "px").style("left", (elemRect.x + elemRect.width + 10) + "px");
+                return tooltip.style("visibility", "visible");
+            })
+            // .on("mouseout", function () {
+            //     return tooltip.style("visibility", "hidden");
+            // });
 
         nodeEnter.append("circle")
             .attr("r", 2.5)

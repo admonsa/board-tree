@@ -1,16 +1,17 @@
 var getId = (x) => `${x.boardId}__${x.columnId}`;
 
-var nodes = Object.values(globalStore.getState().boardsEntities)
+var boardsEntities = globalStore.getState().boardsEntities;
+var nodes = Object.values(boardsEntities)
     .reduce((map, board) => {
         board?.board_data?.columns?.forEach((col) => {
-            map.set(getId({boardId: board.id, columnId: col.id}), {boardId: board.id, title: col.title, type: col.type})
+            map.set(getId({boardId: board.id, columnId: col.id}), {boardId: board.id, title: col.title, type: col.type, settings: col.settings})
         })
         return map;
     }, new Map())
 
 var subitems = {boardId: undefined, columnId: undefined};
 
-var relations = Object.entries(globalStore.getState().boardsEntities)
+var relations = Object.entries(boardsEntities)
     .flatMap(([boardId, board]) => board.board_data?.columns?.map(x => {
             if (x.type === "board-relation") {
                 return ({
@@ -94,8 +95,26 @@ function generateCode(columnRelations, rootBoardId) {
     const rec = (column) => {
         const node = nodes.get(getId(column));
         const x = graph.get(getId(column));
-        const type = node?.type === 'board-relation' ? 'connect board' : node?.type === 'lookup' ? 'mirror' : node?.type;
-        const name = `${column.boardId} - ${node?.title || column.columnId} (${type})`;
+        let name;
+        let additionalText = '';
+        let type = node?.type;
+        switch (type) {
+            case 'board-relation':
+                type = 'connect board';
+                if (node?.settings?.allowCreateReflectionColumn) {
+                    additionalText = ' - 2 way'
+                }
+                break;
+            case 'lookup':
+                type = 'mirror';
+                break;
+            case 'name':
+                name = `${column.boardId} - ${boardsEntities[column.boardId]?.name}`;
+                break;
+            default:
+                break;
+        }
+        name = name || `${column.boardId} - ${node?.title || column.columnId} (${type}${additionalText})`;
         if (type === 'subtasks') return {name, children: subtasksChildren}
         return {
             name,
