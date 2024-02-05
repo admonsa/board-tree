@@ -2,49 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Collapsible Tree Example</title>
+    <title>Board Linkage</title>
     <style>
-
         .node circle {
             fill: #fff;
             stroke: steelblue;
             stroke-width: 3px;
         }
-
         .node text {
             font: 12px sans-serif;
         }
-
         .link {
             fill: none;
             stroke: #ccc;
             stroke-width: 2px;
         }
-
     </style>
     <style>
         #tooltip {
-            position: absolute;
-            z-index: 9;
+            resize: both;
+            overflow: hidden;
+            position: fixed;
             background-color: #f1f1f1;
             border: 1px solid #d3d3d3;
-            text-align: center;
+            text-align: left;
+            width: 500px;
+            height: 200px;
+            left: 30px;
         }
 
         #tooltip_header {
             padding: 10px;
             cursor: move;
-            z-index: 10;
             background-color: #2196F3;
             color: #fff;
         }
+
+        #tooltip_content {
+            overflow: auto;
+            scroll-behavior: smooth;
+            height: calc(100% - 60px);
+        }
     </style>
-    
 </head>
 <body>
 <div id="tooltip">
     <div id="tooltip_header">Tooltip - drag to move</div>
-    <p id="tooltip_content"></p>
+    <pre id="tooltip_content"></pre>
 </div>
 
 <script>
@@ -98,7 +102,7 @@
 
     let rawGraph = new URLSearchParams(window.location.search).get('graph');
     let text = LZString.decompressFromEncodedURIComponent(rawGraph);
-    let graph = JSON.parse(text)
+    let {mondayLink, boards, ...graph} = JSON.parse(text)
 
     const width = window.screen.width;
     const marginTop = 10;
@@ -171,14 +175,7 @@
         const node = gNode.selectAll("g")
             .data(nodes, d => d.id);
 
-        let tooltip = d3.select("tooltip_content")
-            .append("div")
-            .style("position", "absolute")
-            .style("z-index", "10")
-            .style("visibility", "hidden")
-            .style("padding", "10px")
-            .style("background", "black")
-            .style("color", "white");
+        let tooltip = d3.select("#tooltip_content")
 
         // Enter any new nodes at the parent's previous position.
         const nodeEnter = node.enter().append("g")
@@ -186,24 +183,25 @@
             .attr("fill-opacity", 0)
             .attr("stroke-opacity", 0)
             .on("dblclick", (event, d) => {
-                alert(1)
-            })
-            .on("click", (event, d) => {
                 d.children = d.children ? null : d._children;
                 update(event, d);
             })
-            .on("mouseover", function (event, d) {
-                console.log(d.data);
+            .on("click", function (event, d) {
                 const {boardId, children, collapsed, id, name, title, type, ...additional} = d.data;
-                tooltip.html(JSON.stringify(additional, null, '\t').replace(/\n/g, '<br/>').replace(/\s/g, '&nbsp&nbsp'));
-                let bodyRect = document.body.getBoundingClientRect();
-                let elemRect = event.target.getBoundingClientRect();
-                tooltip.style("top", (elemRect.top - bodyRect.top) + "px").style("left", (elemRect.x + elemRect.width + 10) + "px");
-                return tooltip.style("visibility", "visible");
+                const replacer = (key, value) => {
+                    console.log(key)
+                    if (Array.isArray(value) && value.length > 0 && ['string', 'number'].indexOf(typeof value[0])) {
+                        return value.join(',')
+                    }
+                    return value;
+                }
+                let s = JSON.stringify(additional, replacer, 2);
+                for (let board of boards) {
+                    s = s.replace(new RegExp(`(${board.id})`, 'ig'), `<a href="${mondayLink}$1" target="_blank">$1 - ${board.name}</a>`);
+                }
+                tooltip.html(`  Board: ${boardId}\n  Column Id: ${id}\n  Column Type: ${type}\n  Column Title: ${title}\n  Additional: ${s}
+                `);
             })
-            // .on("mouseout", function () {
-            //     return tooltip.style("visibility", "hidden");
-            // });
 
         nodeEnter.append("circle")
             .attr("r", 2.5)
