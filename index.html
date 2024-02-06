@@ -201,13 +201,13 @@
                         }
                         return value;
                     }
-                    let s = JSON.stringify(additional, replacer, 2);
+                    let additionalStr = JSON.stringify(additional, replacer, 2);
                     for (let board of boards) {
-                        s = s.replace(new RegExp(`(${board.id})`, 'ig'), `<a href="${mondayLink}$1" target="_blank">$1 - ${board.name}</a>`);
+                        additionalStr = additionalStr.replace(new RegExp(`(${board.id})`, 'ig'), `<a href="${mondayLink}$1" target="_blank">$1 - ${board.name}</a>`);
                     }
-                    let board = boards.find(board => board.id === boardId);
-                    const boardLink = `<a href="${mondayLink}${boardId}" target="_blank">$1${board ? ' - ' + board.name : ''}</a>`
-                    tooltip.html(`  Board: ${boardLink}\n  Column Id: ${id}\n  Column Type: ${type}\n  Column Title: ${title}\n  Additional: ${s}
+                    const board = boards.find(board => board.id === boardId);
+                    const boardLink = `<a href="${mondayLink}${boardId}" target="_blank">${boardId}${board ? ' - ' + board.name : ''}</a>`
+                    tooltip.html(`  Board: ${boardLink}\n  Column Id: ${id}\n  Column Type: ${type}\n  Column Title: ${title}\n  Additional: ${additionalStr}
                 `);
                 })
 
