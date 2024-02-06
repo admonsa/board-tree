@@ -105,6 +105,7 @@
 
 <script>
     window.addEventListener('message', (event) => {
+        debugger
         if (!event.data.graph) return;
 
         // let rawGraph = new URLSearchParams(window.location.search).get('graph');
@@ -205,7 +206,8 @@
                     for (let board of boards) {
                         s = s.replace(new RegExp(`(${board.id})`, 'ig'), `<a href="${mondayLink}$1" target="_blank">$1 - ${board.name}</a>`);
                     }
-                    const boardLink = `<a href="${mondayLink}${boardId}" target="_blank">$1 - ${boards.find(board => board.id === boardId).name}</a>`
+                    let board = boards.find(board => board.id === boardId);
+                    const boardLink = `<a href="${mondayLink}${boardId}" target="_blank">$1${board ? ' - ' + board.name : ''}</a>`
                     tooltip.html(`  Board: ${boardLink}\n  Column Id: ${id}\n  Column Type: ${type}\n  Column Title: ${title}\n  Additional: ${s}
                 `);
                 })
