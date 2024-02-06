@@ -102,11 +102,9 @@
     }
 </script>
 <script src="https://cdn.observableusercontent.com/npm/d3@7.8.5/dist/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.js"></script>
 
 <script>
     window.addEventListener('message', (event) => {
-        debugger
         if (!event.data.graph) return;
 
         // let rawGraph = new URLSearchParams(window.location.search).get('graph');
@@ -114,10 +112,10 @@
         let {mondayLink, boards, ...graph} = event.data.graph
 
         const width = window.screen.width;
-        const marginTop = 10;
-        const marginRight = 10;
-        const marginBottom = 10;
-        const marginLeft = 40;
+        const marginTop = 20;
+        const marginRight = 20;
+        const marginBottom = 20;
+        const marginLeft = 80;
 
         // Rows are separated by dx pixels, columns by dy pixels. These names can be counter-intuitive
         // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
